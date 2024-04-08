@@ -22,8 +22,6 @@ import threading
 from copy import deepcopy
 from helpers import create_shared_memory_video_frame, get_video_frame_bytes
 
-UVC_VIDEO_FORMAT = 'YUYV' # YUYV MJPG
-
 def setup_uvc_camera(device_index, size=None, fps=None, format = None):
     """
     Returns Opencv capture object of the UVC video divice
@@ -83,7 +81,7 @@ class ReceivedVideoTrack(MediaStreamTrack):
         print("\n-----------------------------------------------------------------------------")
         print(f"Receiving Video Track [track_id: {track.id}]")
         print(f"Read the frames from shared memory name: {track.id}")
-        self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(480, 640, 3))
+        self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(720, 1280, 3))
         print("\n-----------------------------------------------------------------------------")
         self.share_thread = threading.Thread(target=self._share,daemon=True)
         self.share_thread.start()
