@@ -22,10 +22,6 @@ import threading
 from copy import deepcopy
 from helpers import create_shared_memory_video_frame, get_video_frame_bytes
 
-UVC_COLOR_SIZE = [640, 480] # [3840,2880] [1920, 1080] [1280, 720] [640, 480]
-UVC_FPS = 24
-
-UVC_VIDEO_INDEX = '/dev/video0'
 UVC_VIDEO_FORMAT = 'YUYV' # YUYV MJPG
 
 def setup_uvc_camera(device_index, size=None, fps=None, format = None):
@@ -51,8 +47,10 @@ class AbsVideoStreamTrack(VideoStreamTrack):
         self.stop_uvc_stream = False
         self.data =  numpy.zeros(video_shape, dtype=numpy.uint8)
         sample_frame = VideoFrame.from_ndarray(self.data)
-        print(f"Starting CmaeraStreamTrack [track_id: {track_id}] | c_frame_size: bytes")
-        print(f"[{self._id}] buffer_size: {sample_frame.planes[0].buffer_size} line_size: {sample_frame.planes[0].line_size} height: {sample_frame.planes[0].height} width: {sample_frame.planes[0].width}")
+        print("\n-----------------------------------------------------------------------------")
+        print(f"Starting {self.__class__.__name__} Stream [track_id: {track_id}]")
+        print(f"buffer_size: {sample_frame.planes[0].buffer_size} line_size: {sample_frame.planes[0].line_size} height: {sample_frame.planes[0].height} width: {sample_frame.planes[0].width}")
+        print("-----------------------------------------------------------------------------\n")
     
     async def recv(self):
         pts, time_base = await self.next_timestamp()
@@ -82,8 +80,11 @@ class ReceivedVideoTrack(MediaStreamTrack):
         self.track = track
         self.received_image = None
         self.jitter_buffer = jitterbuffer.JitterBuffer(capacity=2,prefetch=2,is_video=True)
+        print("\n-----------------------------------------------------------------------------")
         print(f"Receiving Video Track [track_id: {track.id}]")
+        print(f"Read the frames from shared memory name: {track.id}")
         self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(480, 640, 3))
+        print("\n-----------------------------------------------------------------------------")
         self.share_thread = threading.Thread(target=self._share,daemon=True)
         self.share_thread.start()
 
@@ -107,15 +108,17 @@ class ReceivedVideoTrack(MediaStreamTrack):
 
 class USBCameraStreamTrack(VideoStreamTrack):
     def __init__(self, track_id, VIDEO_INDEX, SIZE=None, FPS=None, VIDEO_FORMAT=None):
-        super().__init__()  # don't forget this!
+        super().__init__() 
         self._id = track_id
         self.uvc_camera = setup_uvc_camera(VIDEO_INDEX, SIZE, FPS, VIDEO_FORMAT)
         self.stop_uvc_stream = False
-        self.uvc_image =  numpy.zeros((UVC_COLOR_SIZE[0], UVC_COLOR_SIZE[1], 3), dtype=numpy.uint8)
+        self.uvc_image =  numpy.zeros((SIZE[0], SIZE[1], 3), dtype=numpy.uint8)
         sample_frame = VideoFrame.from_ndarray(self.uvc_image)
         self.frame = sample_frame
-        print(f"Starting USBCameraStreamTrack [track_id: {track_id}] | c_frame_size: bytes")
-        print(f"[{self._id}] buffer_size: {sample_frame.planes[0].buffer_size} line_size: {sample_frame.planes[0].line_size} height: {sample_frame.planes[0].height} width: {sample_frame.planes[0].width}")
+        print("\n-----------------------------------------------------------------------------")
+        print(f"Starting USB Camera Stream [track_id: {track_id}]")
+        print(f"buffer_size: {sample_frame.planes[0].buffer_size} line_size: {sample_frame.planes[0].line_size} height: {sample_frame.planes[0].height} width: {sample_frame.planes[0].width}")
+        print("-----------------------------------------------------------------------------\n")
         self.uvc_stream_thread = threading.Thread(target=self.uvc_cam_stream,daemon=True)
         self.uvc_stream_thread.start()
 
