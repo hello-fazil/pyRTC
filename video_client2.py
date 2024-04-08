@@ -9,11 +9,11 @@ if __name__ == "__main__":
     UVC_FPS = 24
     UVC_VIDEO_FORMAT = 'YUYV' # YUYV MJPG
     video_handle = VideoTransceiver('answer')
-    video_handle.addVideoTransmitFeed(USBCameraStreamTrack(track_id='video2',
-                                                           VIDEO_INDEX='/dev/video2', 
-                                                           SIZE=UVC_COLOR_SIZE, 
-                                                           FPS=UVC_FPS, 
-                                                           VIDEO_FORMAT=UVC_VIDEO_FORMAT))
+    # video_handle.addVideoTransmitFeed(USBCameraStreamTrack(track_id='video2',
+    #                                                        VIDEO_INDEX='/dev/video2', 
+    #                                                        SIZE=UVC_COLOR_SIZE, 
+    #                                                        FPS=UVC_FPS, 
+    #                                                        VIDEO_FORMAT=UVC_VIDEO_FORMAT))
     video_handle.startup()
     # while True:
     #     time.sleep(1)

@@ -81,8 +81,8 @@ class ReceivedVideoTrack(MediaStreamTrack):
         print("\n-----------------------------------------------------------------------------")
         print(f"Receiving Video Track [track_id: {track.id}]")
         print(f"Read the frames from shared memory name: {track.id}")
-        self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(720, 1280, 3))
-        print("\n-----------------------------------------------------------------------------")
+        self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(480, 640, 3))
+        print("-----------------------------------------------------------------------------\n")
         self.share_thread = threading.Thread(target=self._share,daemon=True)
         self.share_thread.start()
 
@@ -96,7 +96,7 @@ class ReceivedVideoTrack(MediaStreamTrack):
     async def recv(self):
         frame = await self.track.recv()
         self.received_image = frame.to_ndarray(format="bgr24")
-        print(f"[Video receive: {self.track.id}]  {self.received_image.shape} {self.received_image.mean()}")
+        # print(f"[Video receive: {self.track.id}]  {self.received_image.shape} {self.received_image.mean()}")
         return frame
     
     def stop(self):
@@ -136,7 +136,7 @@ class USBCameraStreamTrack(VideoStreamTrack):
                                 )
         frame.pts = pts
         frame.time_base = time_base
-        print(f"[USB cam send: {self._id}] {self.uvc_image.shape} {self.uvc_image.mean()}")
+        # print(f"[USB cam send: {self._id}] {self.uvc_image.shape} {self.uvc_image.mean()}")
         return frame
 
 async def run(pc, player, recorder, signaling, role, video_transmit_tracks):

@@ -11,18 +11,18 @@ import cv2
 if __name__ == "__main__":
     UVC_COLOR_SIZE = [640, 480] # [3840,2880] [1920, 1080] [1280, 720] [640, 480]
     UVC_FPS = 24
-    UVC_VIDEO_FORMAT = 'YUYV' # YUYV MJPG
+    UVC_VIDEO_FORMAT = 'MJPG' # YUYV MJPG
     video_handle = VideoTransceiver(role='offer')
     video_handle.addVideoTransmitFeed(USBCameraStreamTrack(track_id='video0',
                                                            VIDEO_INDEX='/dev/video0', 
                                                            SIZE=UVC_COLOR_SIZE, 
                                                            FPS=UVC_FPS, 
                                                            VIDEO_FORMAT=UVC_VIDEO_FORMAT))
-    video_handle.addVideoTransmitFeed(USBCameraStreamTrack(track_id='video1',
-                                                           VIDEO_INDEX='/dev/video3', 
-                                                           SIZE=UVC_COLOR_SIZE, 
-                                                           FPS=UVC_FPS, 
-                                                           VIDEO_FORMAT=UVC_VIDEO_FORMAT))
+    # video_handle.addVideoTransmitFeed(USBCameraStreamTrack(track_id='video1',
+    #                                                        VIDEO_INDEX='/dev/video3', 
+    #                                                        SIZE=UVC_COLOR_SIZE, 
+    #                                                        FPS=UVC_FPS, 
+    #                                                        VIDEO_FORMAT=UVC_VIDEO_FORMAT))
     video_handle.addVideoTransmitFeed(AbsVideoStreamTrack(track_id='ball_video',
                                                           video_shape=(480, 640, 3)))
     video_handle.startup()
