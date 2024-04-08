@@ -81,7 +81,7 @@ class ReceivedVideoTrack(MediaStreamTrack):
         print("\n-----------------------------------------------------------------------------")
         print(f"Receiving Video Track [track_id: {track.id}]")
         print(f"Read the frames from shared memory name: {track.id}")
-        self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(720, 1280, 3))
+        self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(1280, 720, 3))
         print("\n-----------------------------------------------------------------------------")
         self.share_thread = threading.Thread(target=self._share,daemon=True)
         self.share_thread.start()
