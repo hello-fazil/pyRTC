@@ -2,6 +2,7 @@ import multiprocessing.shared_memory
 import numpy as np
 import pyrealsense2 as rs
 import cv2
+from copy import deepcopy
 
 def create_shared_memory_video_frame(name,frame_shape, write=True):
     img = np.zeros(frame_shape, dtype=np.uint8)
@@ -45,3 +46,14 @@ def setup_uvc_camera(device_index, size=None, fps=None, format = None):
     if fps:
         cap.set(cv2.CAP_PROP_FPS, fps)
     return cap
+
+def show_received(video_track_names=[]):
+    tracks = {}
+    for n,s in video_track_names:
+        shm, shared_frame = create_shared_memory_video_frame(n,s,write=False)
+        tracks[n] = {'shm':shm,'frame':shared_frame}
+
+    while True:
+        for n in tracks.keys():
+            cv2.imshow(n,deepcopy(tracks[n]['frame']))
+        cv2.waitKey(10)

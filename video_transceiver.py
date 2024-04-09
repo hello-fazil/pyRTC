@@ -68,6 +68,9 @@ class VideoTransceiver:
         t = threading.Thread(target=self.run)
         t.start()
     
+    def get_connection_statistics_report(self):
+        return asyncio.run(self.pc.getStats())
+
     def stop():
         pass
 
