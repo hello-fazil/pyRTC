@@ -5,4 +5,4 @@ The PyRTC is a Pythonic library that provides simplified synchronous APIs to cre
 ## Data Transceivers [TODO]
 ## Custome Signalling [TODO]
 > [!WARNING]  
-> PyRTC is a work in progress library.
+> PyRTC is incomplete and a work-in-progress library.
