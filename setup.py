@@ -10,7 +10,7 @@ setup(
     install_requires=[
         'aiortc'
     ],
-    packages=find_packages(include=['pyrtc', 'pyrtc.video_transceiver', 'pyrtc.helpers']), 
+    packages=['pyrtc'], 
     author='Mohamed Fazil',
     author_email='mohamedfazilsulaiman@gmail.com',
     classifiers=[

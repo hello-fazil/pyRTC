@@ -18,7 +18,7 @@ from av.video import reformatter
 import os
 import threading
 from copy import deepcopy
-from helpers import create_shared_memory_video_frame, get_video_frame_bytes, get_rs_devices, setup_uvc_camera
+from pyrtc.helpers import create_shared_memory_video_frame, get_video_frame_bytes, get_rs_devices, setup_uvc_camera
 import stretch_body.hello_utils as hu
 import numpy as np
 
