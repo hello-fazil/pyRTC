@@ -1,8 +1,6 @@
 import argparse
 import asyncio
-import logging
-import math
-import time
+import pyrealsense2 as rs
 import cv2
 import numpy
 from aiortc import (
@@ -20,7 +18,9 @@ from av.video import reformatter
 import os
 import threading
 from copy import deepcopy
-from helpers import create_shared_memory_video_frame, get_video_frame_bytes
+from helpers import create_shared_memory_video_frame, get_video_frame_bytes, get_rs_devices
+import stretch_body.hello_utils as hu
+import numpy as np
 
 def setup_uvc_camera(device_index, size=None, fps=None, format = None):
     """
@@ -80,8 +80,16 @@ class ReceivedVideoTrack(MediaStreamTrack):
         self.jitter_buffer = jitterbuffer.JitterBuffer(capacity=2,prefetch=2,is_video=True)
         print("\n-----------------------------------------------------------------------------")
         print(f"Receiving Video Track [track_id: {track.id}]")
-        print(f"Read the frames from shared memory name: {track.id}")
-        self.shm, self.shared_frame = create_shared_memory_video_frame(track.id,(480, 640, 3))
+        print(f"Waiting for first frame to decide frame size . . . . ")
+        print("-----------------------------------------------------------------------------\n")
+        self.shm, self.shared_frame = None,None
+        self.share_thread = None
+        self.first_frame_shape = None
+    
+    def start_shared_memory_write(self):
+        print("\n-----------------------------------------------------------------------------")
+        print(f"First frame received frame shape: {self.first_frame_shape}. Read the frames from shared memory name: {self.track.id}")
+        self.shm, self.shared_frame = create_shared_memory_video_frame(self.track.id,self.first_frame_shape)
         print("-----------------------------------------------------------------------------\n")
         self.share_thread = threading.Thread(target=self._share,daemon=True)
         self.share_thread.start()
@@ -96,7 +104,10 @@ class ReceivedVideoTrack(MediaStreamTrack):
     async def recv(self):
         frame = await self.track.recv()
         self.received_image = frame.to_ndarray(format="bgr24")
-        # print(f"[Video receive: {self.track.id}]  {self.received_image.shape} {self.received_image.mean()}")
+        if self.first_frame_shape is None:
+            self.first_frame_shape = self.received_image.shape
+            self.start_shared_memory_write()
+        print(f"[Video receive: {self.track.id}]  {self.received_image.shape} {self.received_image.mean()}")
         return frame
     
     def stop(self):
@@ -136,7 +147,89 @@ class USBCameraStreamTrack(VideoStreamTrack):
                                 )
         frame.pts = pts
         frame.time_base = time_base
-        # print(f"[USB cam send: {self._id}] {self.uvc_image.shape} {self.uvc_image.mean()}")
+        print(f"[USB cam send: {self._id}] {self.uvc_image.shape} {self.uvc_image.mean()}")
+        return frame
+
+class RealsenseD435iStreamTrack(VideoStreamTrack):
+    def __init__(self, track_id, SIZE=None, FPS=None):
+        super().__init__() 
+        self._id = track_id
+
+        self.pipeline_d435i = hu.setup_realsense_camera(serial_number=get_rs_devices()['Intel RealSense D435I'],
+                                                    color_size=SIZE,
+                                                    depth_size=SIZE,
+                                                    fps=FPS)
+
+        self.stop_uvc_stream = False
+        self.image =  numpy.zeros((SIZE[0], SIZE[1], 3), dtype=numpy.uint8)
+        sample_frame = VideoFrame.from_ndarray(self.image)
+        self.frame = sample_frame
+        print("\n-----------------------------------------------------------------------------")
+        print(f"Starting Realsense D435i Camera Stream [track_id: {track_id}]")
+        print(f"buffer_size: {sample_frame.planes[0].buffer_size} line_size: {sample_frame.planes[0].line_size} height: {sample_frame.planes[0].height} width: {sample_frame.planes[0].width}")
+        print("-----------------------------------------------------------------------------\n")
+        self.uvc_stream_thread = threading.Thread(target=self.uvc_cam_stream,daemon=True)
+        self.uvc_stream_thread.start()
+
+    def uvc_cam_stream(self):
+        while not self.stop_uvc_stream:
+            try:
+                frames_d435i = self.pipeline_d435i.wait_for_frames()    
+                self.image =  np.asanyarray(frames_d435i.get_color_frame().get_data())
+            except Exception as e:
+                print(f"Error D435i Cam: {e}")
+        self.pipeline_d435i.stop()
+    
+    async def recv(self):
+        pts, time_base = await self.next_timestamp()
+        # frame = deepcopy(self.frame)
+        frame = VideoFrame.from_ndarray(
+                                    self.image, format="bgr24"
+                                )
+        frame.pts = pts
+        frame.time_base = time_base
+        print(f"[D435i send: {self._id}] {self.image.shape} {self.image.mean()}")
+        return frame
+
+class RealsenseD405StreamTrack(VideoStreamTrack):
+    def __init__(self, track_id, SIZE=None, FPS=None):
+        super().__init__() 
+        self._id = track_id
+
+        self.pipeline_d435i = hu.setup_realsense_camera(serial_number=get_rs_devices()['Intel RealSense D405'],
+                                                    color_size=SIZE,
+                                                    depth_size=SIZE,
+                                                    fps=FPS)
+
+        self.stop_uvc_stream = False
+        self.image =  numpy.zeros((SIZE[0], SIZE[1], 3), dtype=numpy.uint8)
+        sample_frame = VideoFrame.from_ndarray(self.image)
+        self.frame = sample_frame
+        print("\n-----------------------------------------------------------------------------")
+        print(f"Starting Realsense D405 Camera Stream [track_id: {track_id}]")
+        print(f"buffer_size: {sample_frame.planes[0].buffer_size} line_size: {sample_frame.planes[0].line_size} height: {sample_frame.planes[0].height} width: {sample_frame.planes[0].width}")
+        print("-----------------------------------------------------------------------------\n")
+        self.uvc_stream_thread = threading.Thread(target=self.uvc_cam_stream,daemon=True)
+        self.uvc_stream_thread.start()
+
+    def uvc_cam_stream(self):
+        while not self.stop_uvc_stream:
+            try:
+                frames_d435i = self.pipeline_d435i.wait_for_frames()    
+                self.image =  np.asanyarray(frames_d435i.get_color_frame().get_data())
+            except Exception as e:
+                print(f"Error D405 Cam: {e}")
+        self.pipeline_d435i.stop()
+    
+    async def recv(self):
+        pts, time_base = await self.next_timestamp()
+        # frame = deepcopy(self.frame)
+        frame = VideoFrame.from_ndarray(
+                                    self.image, format="bgr24"
+                                )
+        frame.pts = pts
+        frame.time_base = time_base
+        print(f"[D405 cam send: {self._id}] {self.image.shape} {self.image.mean()}")
         return frame
 
 async def run(pc, player, recorder, signaling, role, video_transmit_tracks):
