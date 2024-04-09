@@ -1,7 +1,7 @@
 import multiprocessing.shared_memory
 import numpy as np
 import pyrealsense2 as rs
-import stretch_body.hello_utils as hu
+import cv2
 
 def create_shared_memory_video_frame(name,frame_shape, write=True):
     img = np.zeros(frame_shape, dtype=np.uint8)
@@ -30,3 +30,18 @@ def get_rs_devices():
         camera_serial = realsense_ctx.devices[i].get_info(rs.camera_info.serial_number)
         connected_devices[camera_name] = camera_serial
     return connected_devices
+
+def setup_uvc_camera(device_index, size=None, fps=None, format = None):
+    """
+    Returns Opencv capture object of the UVC video divice
+    """
+    cap = cv2.VideoCapture(device_index)
+    if format:
+        fourcc_value = cv2.VideoWriter_fourcc(*f'{format}')
+        cap.set(cv2.CAP_PROP_FOURCC, fourcc_value)
+    if size:
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, size[0])
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, size[1])
+    if fps:
+        cap.set(cv2.CAP_PROP_FPS, fps)
+    return cap

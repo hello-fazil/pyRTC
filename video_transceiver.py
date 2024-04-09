@@ -18,14 +18,12 @@ from av.video import reformatter
 import os
 import threading
 from copy import deepcopy
-from helpers import create_shared_memory_video_frame, get_video_frame_bytes, get_rs_devices
+from helpers import create_shared_memory_video_frame, get_video_frame_bytes, get_rs_devices, setup_uvc_camera
 import stretch_body.hello_utils as hu
 import numpy as np
 
 class VideoTransceiver:
     def __init__(self, role,host='0.0.0.0',port=1234):
-        # create signaling and peer connection
-        # self.signaling = create_signaling(args)
         self.role = role
         self.signaling = TcpSocketSignaling(host, port)
         self.player = None
@@ -72,21 +70,54 @@ class VideoTransceiver:
     
     def stop():
         pass
-    
-def setup_uvc_camera(device_index, size=None, fps=None, format = None):
-    """
-    Returns Opencv capture object of the UVC video divice
-    """
-    cap = cv2.VideoCapture(device_index)
-    if format:
-        fourcc_value = cv2.VideoWriter_fourcc(*f'{format}')
-        cap.set(cv2.CAP_PROP_FOURCC, fourcc_value)
-    if size:
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, size[0])
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, size[1])
-    if fps:
-        cap.set(cv2.CAP_PROP_FPS, fps)
-    return cap
+
+async def run(pc, player, recorder, signaling, role, video_transmit_tracks):
+    def add_tracks():
+        if player and player.audio:
+            pc.addTrack(player.audio)
+
+        if player and player.video:
+            pc.addTrack(player.video)
+        else:
+            if len(video_transmit_tracks.keys()):
+                for t in video_transmit_tracks:
+                    pc.addTrack(video_transmit_tracks[t])
+
+    @pc.on("track")
+    def on_track(track):
+        print("Receiving %s" % track.kind)
+        recorder.addTrack(ReceivedVideoTrack(track))
+        # recorder.addTrack(track)
+
+    # connect signaling
+    await signaling.connect()
+
+    if role == "offer":
+        # send offer
+        add_tracks()
+        await pc.setLocalDescription(await pc.createOffer())
+        await signaling.send(pc.localDescription)
+
+    # consume signaling
+    while True:
+        obj = await signaling.receive()
+
+        if isinstance(obj, RTCSessionDescription):
+            await pc.setRemoteDescription(obj)
+            await recorder.start()
+
+            if obj.type == "offer":
+                # send answer
+                add_tracks()
+                await pc.setLocalDescription(await pc.createAnswer())
+                await signaling.send(pc.localDescription)
+        elif isinstance(obj, RTCIceCandidate):
+            await pc.addIceCandidate(obj)
+        elif obj is BYE:
+            print("Exiting")
+            break
+
+
 
 
 class AbstractVideoStreamTrack(VideoStreamTrack):
@@ -165,6 +196,8 @@ class ReceivedVideoTrack(MediaStreamTrack):
         super().stop()
         self.shm.close()
         self.shm.unlink()
+
+#############################################  Tried some model classes around MediaStreamTrack abs class ##########################################################################
 
 class USBCameraStreamTrack(VideoStreamTrack):
     def __init__(self, track_id, VIDEO_INDEX, SIZE=None, FPS=None, VIDEO_FORMAT=None):
@@ -283,99 +316,5 @@ class RealsenseD405StreamTrack(VideoStreamTrack):
         print(f"[D405 cam send: {self._id}] {self.image.shape} {self.image.mean()}")
         return frame
 
-async def run(pc, player, recorder, signaling, role, video_transmit_tracks):
-    def add_tracks():
-        if player and player.audio:
-            pc.addTrack(player.audio)
 
-        if player and player.video:
-            pc.addTrack(player.video)
-        else:
-            if len(video_transmit_tracks.keys()):
-                for t in video_transmit_tracks:
-                    pc.addTrack(video_transmit_tracks[t])
 
-    @pc.on("track")
-    def on_track(track):
-        print("Receiving %s" % track.kind)
-        recorder.addTrack(ReceivedVideoTrack(track))
-        # recorder.addTrack(track)
-
-    # connect signaling
-    await signaling.connect()
-
-    if role == "offer":
-        # send offer
-        add_tracks()
-        await pc.setLocalDescription(await pc.createOffer())
-        await signaling.send(pc.localDescription)
-
-    # consume signaling
-    while True:
-        obj = await signaling.receive()
-
-        if isinstance(obj, RTCSessionDescription):
-            await pc.setRemoteDescription(obj)
-            await recorder.start()
-
-            if obj.type == "offer":
-                # send answer
-                add_tracks()
-                await pc.setLocalDescription(await pc.createAnswer())
-                await signaling.send(pc.localDescription)
-        elif isinstance(obj, RTCIceCandidate):
-            await pc.addIceCandidate(obj)
-        elif obj is BYE:
-            print("Exiting")
-            break
-
-class VideoTransceiver:
-    def __init__(self, role,host='0.0.0.0',port=1234):
-        # create signaling and peer connection
-        # self.signaling = create_signaling(args)
-        self.role = role
-        self.signaling = TcpSocketSignaling(host, port)
-        self.player = None
-        self.pc = RTCPeerConnection()
-        self.async_event_loop = asyncio.new_event_loop()
-        self.tracks = {}
-        self.recorder = MediaBlackhole()
-
-        self.video_transmit_tracks = {}
-
-    def run(self):
-        self.async_event_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.async_event_loop)
-        # run event loop
-        try:
-           self.async_event_loop.run_until_complete(
-                run(
-                    pc=self.pc,
-                    player=self.player,
-                    recorder=self.recorder,
-                    signaling=self.signaling,
-                    role=self.role,
-                    video_transmit_tracks=self.video_transmit_tracks,
-                )
-            )
-        except KeyboardInterrupt:
-            pass
-        finally:
-            # cleanup
-            self.async_event_loop.run_until_complete(self.recorder.stop())
-            self.async_event_loop.run_until_complete(self.signaling.close())
-            self.async_event_loop.run_until_complete(self.pc.close())
-            self.async_event_loop.stop()
-    
-    def addVideoTransmitFeed(self,video_track):
-        self.video_transmit_tracks[video_track._id] = video_track
-
-    async def signal_connect(self):
-        await self.signaling.connect()
-
-    def startup(self):
-        t = threading.Thread(target=self.run)
-        t.start()
-    
-    def stop():
-        pass
