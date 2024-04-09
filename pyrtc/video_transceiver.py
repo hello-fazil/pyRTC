@@ -125,7 +125,7 @@ async def run(pc, player, recorder, signaling, role, video_transmit_tracks):
 
 class AbstractVideoStreamTrack(VideoStreamTrack):
     def __init__(self, track_id, video_shape):
-        super().__init__()  # don't forget this!
+        super().__init__()  
         self._id = track_id
         self.stop_uvc_stream = False
         self.data =  numpy.zeros(video_shape, dtype=numpy.uint8)
@@ -158,7 +158,6 @@ class ReceivedVideoTrack(MediaStreamTrack):
     kind = "video"
 
     def __init__(self, track):
-        # Initialize with Super to avoid reffering to Parent Clase
         super().__init__() 
         self.track = track
         self.received_image = None
