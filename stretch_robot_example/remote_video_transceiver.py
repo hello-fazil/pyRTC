@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-from video_transceiver import VideoTransceiver, AbstractVideoStreamTrack
-from helpers import setup_uvc_camera
+from pyrtc.video_transceiver import VideoTransceiver, AbstractVideoStreamTrack
+from pyrtc.helpers import setup_uvc_camera
 import time
 import asyncio
 import yaml

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-
-from video_transceiver import VideoTransceiver, AbstractVideoStreamTrack
+from pyrtc.video_transceiver import VideoTransceiver, AbstractVideoStreamTrack
 import numpy as np
 import stretch_body.hello_utils as hu
-from helpers import get_rs_devices
+from pyrtc.helpers import get_rs_devices
 
 if __name__ == "__main__":
 
