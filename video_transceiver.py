@@ -22,6 +22,57 @@ from helpers import create_shared_memory_video_frame, get_video_frame_bytes, get
 import stretch_body.hello_utils as hu
 import numpy as np
 
+class VideoTransceiver:
+    def __init__(self, role,host='0.0.0.0',port=1234):
+        # create signaling and peer connection
+        # self.signaling = create_signaling(args)
+        self.role = role
+        self.signaling = TcpSocketSignaling(host, port)
+        self.player = None
+        self.pc = RTCPeerConnection()
+        self.async_event_loop = asyncio.new_event_loop()
+        self.tracks = {}
+        self.recorder = MediaBlackhole()
+
+        self.video_transmit_tracks = {}
+
+    def run(self):
+        self.async_event_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.async_event_loop)
+        # run event loop
+        try:
+           self.async_event_loop.run_until_complete(
+                run(
+                    pc=self.pc,
+                    player=self.player,
+                    recorder=self.recorder,
+                    signaling=self.signaling,
+                    role=self.role,
+                    video_transmit_tracks=self.video_transmit_tracks,
+                )
+            )
+        except KeyboardInterrupt:
+            pass
+        finally:
+            # cleanup
+            self.async_event_loop.run_until_complete(self.recorder.stop())
+            self.async_event_loop.run_until_complete(self.signaling.close())
+            self.async_event_loop.run_until_complete(self.pc.close())
+            self.async_event_loop.stop()
+    
+    def addVideoTransmitFeed(self,video_track):
+        self.video_transmit_tracks[video_track._id] = video_track
+
+    async def signal_connect(self):
+        await self.signaling.connect()
+
+    def startup(self):
+        t = threading.Thread(target=self.run)
+        t.start()
+    
+    def stop():
+        pass
+    
 def setup_uvc_camera(device_index, size=None, fps=None, format = None):
     """
     Returns Opencv capture object of the UVC video divice
@@ -38,7 +89,7 @@ def setup_uvc_camera(device_index, size=None, fps=None, format = None):
     return cap
 
 
-class AbsVideoStreamTrack(VideoStreamTrack):
+class AbstractVideoStreamTrack(VideoStreamTrack):
     def __init__(self, track_id, video_shape):
         super().__init__()  # don't forget this!
         self._id = track_id
