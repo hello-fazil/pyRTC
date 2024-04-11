@@ -11,6 +11,7 @@ from aiortc import (
     MediaStreamTrack,
     jitterbuffer
 )
+from aiortc.rtcrtpparameters import RTCRtpCodecCapability
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
 from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signaling, TcpSocketSignaling
 from av import VideoFrame
@@ -18,7 +19,7 @@ from av.video import reformatter
 import os
 import threading
 from copy import deepcopy
-from pyrtc.helpers import create_shared_memory_video_frame, get_video_frame_bytes, get_rs_devices, setup_uvc_camera
+from pyrtc.helpers import create_shared_memory_video_frame, get_rs_devices, setup_uvc_camera, force_codec
 import stretch_body.hello_utils as hu
 import numpy as np
 
@@ -31,7 +32,7 @@ class VideoTransceiver:
         self.async_event_loop = asyncio.new_event_loop()
         self.tracks = {}
         self.recorder = MediaBlackhole()
-
+        self.codec_preference = None
         self.video_transmit_tracks = {}
 
     def run(self):
@@ -47,6 +48,7 @@ class VideoTransceiver:
                     signaling=self.signaling,
                     role=self.role,
                     video_transmit_tracks=self.video_transmit_tracks,
+                    codec_preference = self.codec_preference
                 )
             )
         except KeyboardInterrupt:
@@ -74,7 +76,10 @@ class VideoTransceiver:
     def stop():
         pass
 
-async def run(pc, player, recorder, signaling, role, video_transmit_tracks):
+    def set_codec_preference(self, codec):
+        self.codec_preference = codec
+
+async def run(pc, player, recorder, signaling, role, video_transmit_tracks, codec_preference=None):
     def add_tracks():
         if player and player.audio:
             pc.addTrack(player.audio)
@@ -84,7 +89,9 @@ async def run(pc, player, recorder, signaling, role, video_transmit_tracks):
         else:
             if len(video_transmit_tracks.keys()):
                 for t in video_transmit_tracks:
-                    pc.addTrack(video_transmit_tracks[t])
+                    sender = pc.addTrack(video_transmit_tracks[t])
+                    if codec_preference is not None:
+                        force_codec(pc,sender,codec_preference)
 
     @pc.on("track")
     def on_track(track):
@@ -191,7 +198,7 @@ class ReceivedVideoTrack(MediaStreamTrack):
         if self.first_frame_shape is None:
             self.first_frame_shape = self.received_image.shape
             self.start_shared_memory_write()
-        print(f"[Video receive: {self.track.id}]  {self.received_image.shape} {self.received_image.mean()}")
+        # print(f"[Video receive: {self.track.id}]  {self.received_image.shape} {self.received_image.mean()}")
         return frame
     
     def stop(self):

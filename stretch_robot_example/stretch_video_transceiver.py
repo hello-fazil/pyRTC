@@ -7,7 +7,7 @@ from pyrtc.helpers import get_rs_devices
 if __name__ == "__main__":
 
     # Initiate a Video Transceiver with a role (offer/answer) and host/port for TCP Signaling
-    video_transceiver = VideoTransceiver(role='offer',host='10.1.10.143',port=5555)
+    video_transceiver = VideoTransceiver(role='offer',host='0.0.0.0',port=5555)
 
 
     # Add abstract video stream track for each video feed with an unique track_id 
@@ -15,6 +15,8 @@ if __name__ == "__main__":
     video_transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='d435i_color_video', video_shape=(720, 1280, 3)))
     video_transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='d405_color_video',  video_shape=(480, 640, 3)))
 
+    codec_preference = 'video/H264' # 'video/VP8' 'video/rtx' 'video/H264 '
+    video_transceiver.set_codec_preference(codec_preference)
 
     UVC_COLOR_SIZE = [1280, 720] # [3840,2880] [1920, 1080] [1280, 720] [640, 480]
     UVC_FPS = 100
@@ -27,6 +29,8 @@ if __name__ == "__main__":
     D435I_COLOR_SIZE = [1280, 720]
     D435I_DEPTH_SIZE = [1280, 720]
     D435I_FPS = 30
+
+    
 
 
     # Create device handles for grabbing video frames from the robot
