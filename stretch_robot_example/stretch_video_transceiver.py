@@ -16,7 +16,7 @@ if __name__ == "__main__":
     video_transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='d405_color_video',  video_shape=(480, 640, 3)))
 
     codec_preference = 'video/H264' # 'video/VP8' 'video/rtx' 'video/H264 '
-    video_transceiver.set_codec_preference(codec_preference)
+    video_transceiver.set_video_codec_preference(codec_preference)
 
     UVC_COLOR_SIZE = [1280, 720] # [3840,2880] [1920, 1080] [1280, 720] [640, 480]
     UVC_FPS = 100

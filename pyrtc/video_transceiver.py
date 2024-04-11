@@ -76,7 +76,7 @@ class VideoTransceiver:
     def stop():
         pass
 
-    def set_codec_preference(self, codec):
+    def set_video_codec_preference(self, codec):
         self.codec_preference = codec
 
 async def run(pc, player, recorder, signaling, role, video_transmit_tracks, codec_preference=None):
