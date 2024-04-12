@@ -74,7 +74,7 @@ def setup_uvc_camera(device_index, size=None, fps=None, format = None):
         cap.set(cv2.CAP_PROP_FPS, fps)
     return cap
 
-def show_received(video_track_names=[]):
+def show_received_shm_video_stream(video_track_names=[]):
     tracks = {}
     for n,s in video_track_names:
         shm, shared_frame = create_shared_memory_video_frame(n,s,write=False)

@@ -10,7 +10,8 @@ if __name__ == "__main__":
 
     # Initiate a Video Transceiver with a role (offer/answer) and host/port for TCP Signaling
     video_transceiver = VideoTransceiver('offer')
-    
+    codec_preference = 'video/H264' # 'video/VP8' 'video/rtx' 'video/H264 '
+    video_transceiver.set_video_codec_preference(codec_preference)
     # Add a 'my_web_cam' feed to send to the connect peer video transceiver
     video_transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='my_web_cam', video_shape=(720, 1280, 3)))
 

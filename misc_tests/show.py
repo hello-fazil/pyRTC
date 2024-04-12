@@ -1,2 +1,2 @@
-from pyrtc.helpers import show_received
-show_received([('my_web_cam',(720,1280,3))])
+from pyrtc.helpers import show_received_shm_video_stream
+show_received_shm_video_stream([('my_web_cam',(720,1280,3))])
