@@ -2,8 +2,6 @@ import multiprocessing.shared_memory
 import numpy as np
 import cv2
 from copy import deepcopy
-from aiortc.rtcrtpparameters import RTCRtpCodecCapability
-from aiortc.rtcrtpsender import RTCRtpSender
 from pprint import pprint
 
 def create_shared_memory_video_frame(name,frame_shape, write=True):
@@ -45,6 +43,7 @@ except Exception as e:
  RTCRtpCodecCapability(mimeType='video/H264', clockRate=90000, channels=None, parameters={'level-asymmetry-allowed': '1', 'packetization-mode': '1', 'profile-level-id': '42e01f'})]
 """
 def force_codec(pc, sender, forced_codec):
+    from aiortc.rtcrtpsender import RTCRtpSender
     kind = forced_codec.split("/")[0]
     codecs = RTCRtpSender.getCapabilities(kind).codecs
     transceiver = next(t for t in pc.getTransceivers() if t.sender == sender)

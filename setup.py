@@ -8,7 +8,7 @@ setup(
     url="https://github.com/hello-fazil/pyRTC",
     long_description=open('README.md').read(),
     install_requires=[
-        'aiortc'
+        'aiortc','numpy','opencv-python','aiohttp'
     ],
     packages=['pyrtc'], 
     author='Mohamed Fazil',
