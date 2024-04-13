@@ -39,15 +39,7 @@ class VideoTransceiver:
         # run event loop
         try:
            self.async_event_loop.run_until_complete(
-                run(
-                    pc=self.pc,
-                    player=self.player,
-                    recorder=self.recorder,
-                    signaling=self.signaling,
-                    role=self.role,
-                    video_transmit_tracks=self.video_transmit_tracks,
-                    codec_preference = self.codec_preference
-                )
+                self._run()
             )
         except KeyboardInterrupt:
             pass
@@ -77,53 +69,47 @@ class VideoTransceiver:
     def set_video_codec_preference(self, codec):
         self.codec_preference = codec
 
-async def run(pc, player, recorder, signaling, role, video_transmit_tracks, codec_preference=None):
-    def add_tracks():
-        if player and player.audio:
-            pc.addTrack(player.audio)
+    async def _run(self):
+        def add_tracks():
+            if len(self.video_transmit_tracks.keys()):
+                for t in self.video_transmit_tracks:
+                    sender = self.pc.addTrack(self.video_transmit_tracks[t])
+                    if self.codec_preference is not None:
+                        force_codec(self.pc,sender,self.codec_preference)
 
-        if player and player.video:
-            pc.addTrack(player.video)
-        else:
-            if len(video_transmit_tracks.keys()):
-                for t in video_transmit_tracks:
-                    sender = pc.addTrack(video_transmit_tracks[t])
-                    if codec_preference is not None:
-                        force_codec(pc,sender,codec_preference)
+        @self.pc.on("track")
+        def on_track(track):
+            print("Receiving %s" % track.kind)
+            self.recorder.addTrack(ReceivedVideoTrack(track))
+            # recorder.addTrack(track)
 
-    @pc.on("track")
-    def on_track(track):
-        print("Receiving %s" % track.kind)
-        recorder.addTrack(ReceivedVideoTrack(track))
-        # recorder.addTrack(track)
+        # connect signaling
+        await self.signaling.connect()
 
-    # connect signaling
-    await signaling.connect()
+        if self.role == "offer":
+            # send offer
+            add_tracks()
+            await self.pc.setLocalDescription(await self.pc.createOffer())
+            await self.signaling.send(self.pc.localDescription)
 
-    if role == "offer":
-        # send offer
-        add_tracks()
-        await pc.setLocalDescription(await pc.createOffer())
-        await signaling.send(pc.localDescription)
+        # consume signaling
+        while True:
+            obj = await self.signaling.receive()
 
-    # consume signaling
-    while True:
-        obj = await signaling.receive()
+            if isinstance(obj, RTCSessionDescription):
+                await self.pc.setRemoteDescription(obj)
+                await self.recorder.start()
 
-        if isinstance(obj, RTCSessionDescription):
-            await pc.setRemoteDescription(obj)
-            await recorder.start()
-
-            if obj.type == "offer":
-                # send answer
-                add_tracks()
-                await pc.setLocalDescription(await pc.createAnswer())
-                await signaling.send(pc.localDescription)
-        elif isinstance(obj, RTCIceCandidate):
-            await pc.addIceCandidate(obj)
-        elif obj is BYE:
-            print("Exiting")
-            break
+                if obj.type == "offer":
+                    # send answer
+                    add_tracks()
+                    await self.pc.setLocalDescription(await self.pc.createAnswer())
+                    await self.signaling.send(self.pc.localDescription)
+            elif isinstance(obj, RTCIceCandidate):
+                await self.pc.addIceCandidate(obj)
+            elif obj is BYE:
+                print("Exiting")
+                break
 
 
 
