@@ -21,7 +21,7 @@ from pyrtc.helpers import create_shared_memory_video_frame, setup_uvc_camera, fo
 import numpy as np
 import time
 
-class VideoTransceiver:
+class Trasceiver:
     def __init__(self, role,host='0.0.0.0',port=1234):
         self.role = role
         self.signaling = TcpSocketSignaling(host, port)

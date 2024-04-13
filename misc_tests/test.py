@@ -1,7 +1,7 @@
 import numpy
 import cv2
 import numpy
-from helpers import create_shared_memory_video_frame
+from pyrtc.helpers import create_shared_memory_video_frame
 import time
 from copy import deepcopy
 

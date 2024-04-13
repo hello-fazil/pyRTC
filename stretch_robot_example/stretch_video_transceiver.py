@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from pyrtc.video_transceiver import VideoTransceiver, AbstractVideoStreamTrack
+from pyrtc.transceiver import Trasceiver, AbstractVideoStreamTrack
 import numpy as np
 import stretch_body.hello_utils as hu
 from pyrtc.helpers import get_rs_devices
@@ -7,16 +7,16 @@ from pyrtc.helpers import get_rs_devices
 if __name__ == "__main__":
 
     # Initiate a Video Transceiver with a role (offer/answer) and host/port for TCP Signaling
-    video_transceiver = VideoTransceiver(role='offer',host='0.0.0.0',port=5555)
+    transceiver = Trasceiver(role='offer',host='0.0.0.0',port=5555)
 
 
     # Add abstract video stream track for each video feed with an unique track_id 
-    video_transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='navigation_camera', video_shape=(720, 1280, 3)))
-    video_transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='d435i_color_video', video_shape=(720, 1280, 3)))
-    video_transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='d405_color_video',  video_shape=(480, 640, 3)))
+    transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='navigation_camera', video_shape=(720, 1280, 3)))
+    transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='d435i_color_video', video_shape=(720, 1280, 3)))
+    transceiver.addVideoTransmitFeed(AbstractVideoStreamTrack(track_id='d405_color_video',  video_shape=(480, 640, 3)))
 
     codec_preference = 'video/H264' # 'video/VP8' 'video/rtx' 'video/H264 '
-    video_transceiver.set_video_codec_preference(codec_preference)
+    transceiver.set_video_codec_preference(codec_preference)
 
     UVC_COLOR_SIZE = [1280, 720] # [3840,2880] [1920, 1080] [1280, 720] [640, 480]
     UVC_FPS = 100
@@ -55,14 +55,14 @@ if __name__ == "__main__":
             ret, nav_head_image = nav_head_camera.read()
 
             # Update frames using the update_image() method for each transmitting tracks stored in the dictionary
-            video_transceiver.video_transmit_tracks['d435i_color_video'].update_image(np.asanyarray(color_frame_d435i.get_data()))
-            video_transceiver.video_transmit_tracks['d405_color_video'].update_image(np.asanyarray(color_frame_d405.get_data()))
-            video_transceiver.video_transmit_tracks['navigation_camera'].update_image(nav_head_image)
+            transceiver.video_transmit_tracks['d435i_color_video'].update_image(np.asanyarray(color_frame_d435i.get_data()))
+            transceiver.video_transmit_tracks['d405_color_video'].update_image(np.asanyarray(color_frame_d405.get_data()))
+            transceiver.video_transmit_tracks['navigation_camera'].update_image(nav_head_image)
         except Exception as e:
             print(f"Error Camera Streams: {e}")
     
     # Start the video transceiver thread 
-    video_transceiver.startup()
+    transceiver.startup()
 
     # Update the video frames in main loop
     while True:
