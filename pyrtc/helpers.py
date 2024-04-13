@@ -5,6 +5,9 @@ from copy import deepcopy
 from pprint import pprint
 import time
 import sys
+import json
+import lzma
+import base64
 
 def create_shared_memory_video_frame(name,frame_shape, write=True):
     img = np.zeros(frame_shape, dtype=np.uint8)
@@ -93,3 +96,31 @@ def loading_dots(message,n=5):
         sys.stdout.write('.')
         sys.stdout.flush()
     print(message)
+
+import json
+import lzma
+import base64
+
+def serialize_to_compressed_string(obj):
+    # Serialize the object to a JSON string
+    json_str = json.dumps(obj)
+    
+    # Compress the JSON string
+    compressed_data = lzma.compress(json_str.encode('utf-8'))
+    
+    # Encode the compressed data to Base64
+    b64_encoded = base64.b64encode(compressed_data).decode('utf-8')
+    
+    return b64_encoded
+
+def deserialize_from_compressed_string(comp_str):
+    # Decode the Base64 encoded string
+    compressed_data = base64.b64decode(comp_str.encode('utf-8'))
+    
+    # Decompress the data
+    json_str = lzma.decompress(compressed_data).decode('utf-8')
+    
+    # Deserialize the JSON string back to an object
+    obj = json.loads(json_str)
+    
+    return obj

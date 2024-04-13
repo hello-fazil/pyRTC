@@ -14,7 +14,6 @@ from aiortc.rtcrtpparameters import RTCRtpCodecCapability
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
 from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signaling, TcpSocketSignaling
 from av import VideoFrame
-from av.video import reformatter
 import os
 import threading
 from copy import deepcopy
@@ -252,7 +251,7 @@ class ReceivedVideoTrack(MediaStreamTrack):
         super().stop()
         self.shm.close()
         self.shm.unlink()
-
+    
 #############################################  Tried some model classes around MediaStreamTrack abs class ##########################################################################
 
 class USBCameraStreamTrack(VideoStreamTrack):

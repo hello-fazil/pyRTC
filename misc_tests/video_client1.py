@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 from pyrtc.video_transceiver import VideoTransceiver, AbstractVideoStreamTrack
-from pyrtc.helpers import setup_uvc_camera, loading_dots
+from pyrtc.helpers import setup_uvc_camera, serialize_to_compressed_string
 import time
-import sys
 
 if __name__ == "__main__":
 
@@ -29,10 +28,12 @@ if __name__ == "__main__":
             video_transceiver.video_transmit_tracks['my_web_cam'].update_image(nav_head_image)
 
             counter = counter + 1
-            video_transceiver.send_data('my_data_1',f'[{time.time()}] count={counter}')
+            data_1 = serialize_to_compressed_string({'time':time.time(),'count':counter})
+            video_transceiver.send_data('my_data_1',data_1)
 
             counter = counter + 1
-            video_transceiver.send_data('my_data_2',f'[{time.time()}] count={counter}')
+            data_2 = serialize_to_compressed_string({'time':time.time(),'count':counter})
+            video_transceiver.send_data('my_data_2',data_2)
             
         except Exception as e:
             print(f"Error webcam Stream: {e}")
