@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 from copy import deepcopy
 from pprint import pprint
+import time
+import sys
 
 def create_shared_memory_video_frame(name,frame_shape, write=True):
     img = np.zeros(frame_shape, dtype=np.uint8)
@@ -84,3 +86,10 @@ def show_received_shm_video_stream(video_track_names=[]):
         for n in tracks.keys():
             cv2.imshow(n,deepcopy(tracks[n]['frame']))
         cv2.waitKey(10)
+
+def loading_dots(message,n=5):
+    for i in range(n):
+        time.sleep(.5)
+        sys.stdout.write('.')
+        sys.stdout.flush()
+    print(message)

@@ -18,20 +18,23 @@ from av.video import reformatter
 import os
 import threading
 from copy import deepcopy
-from pyrtc.helpers import create_shared_memory_video_frame, setup_uvc_camera, force_codec
+from pyrtc.helpers import create_shared_memory_video_frame, setup_uvc_camera, force_codec, loading_dots
 import numpy as np
+import time
 
 class VideoTransceiver:
     def __init__(self, role,host='0.0.0.0',port=1234):
         self.role = role
         self.signaling = TcpSocketSignaling(host, port)
-        self.player = None
         self.pc = RTCPeerConnection()
         self.async_event_loop = asyncio.new_event_loop()
         self.tracks = {}
         self.recorder = MediaBlackhole()
         self.codec_preference = None
         self.video_transmit_tracks = {}
+        self.data_channels = {}
+        self.coro_thread = None
+        self.data_dict = {}
 
     def run(self):
         self.async_event_loop = asyncio.new_event_loop()
@@ -52,6 +55,10 @@ class VideoTransceiver:
     
     def addVideoTransmitFeed(self,video_track):
         self.video_transmit_tracks[video_track._id] = video_track
+    
+    def addDataChannel(self,name):
+        self.data_channels[name] = self.pc.createDataChannel(name)
+        self.data_dict[name] = None
 
     async def signal_connect(self):
         await self.signaling.connect()
@@ -63,11 +70,38 @@ class VideoTransceiver:
     def get_connection_statistics_report(self):
         return asyncio.run(self.pc.getStats())
 
-    def stop():
-        pass
+    def stop(self):
+        if self.coro_thread:
+            self.coro_thread.join()
 
     def set_video_codec_preference(self, codec):
         self.codec_preference = codec
+    
+    def send_data(self, label,data):
+        if label in self.data_channels.keys():
+            future = asyncio.run_coroutine_threadsafe(self._send_data(label,data), self.async_event_loop)
+        else:
+            print(f"Unable to find data channel: {label}")
+    
+    def get_data(self,label):
+        return self.data_dict[label]
+
+    async def _send_data(self, channel_label,data):
+        self.data_channels[channel_label].send(data)
+        
+
+    def wait_for_connection(self,timeout=30):
+        time.sleep(1)
+        s = time.time()
+        while not self.pc.connectionState=='connected':
+            loading_dots(f"Waiting for connection [state:{self.pc.connectionState}]")
+            time.sleep(0.5)
+            if time.time()-s>timeout:
+                print(f"Timeout Unablet connect")
+                return False
+        print(f"\n Connection [state:{self.pc.connectionState}]")
+        print('----------------------------------------------------------\n')
+        return True
 
     async def _run(self):
         def add_tracks():
@@ -85,6 +119,35 @@ class VideoTransceiver:
 
         # connect signaling
         await self.signaling.connect()
+
+        @self.pc.on("datachannel")
+        def on_datachannel(channel):
+            print('\n----------------------------------------------------------')
+            self.data_channels[channel.label] = channel
+            print(f"Created Data Channel: {channel.label}")
+            self.data_dict[channel.label] = None
+            print('----------------------------------------------------------\n')
+
+            @channel.on("message")
+            def on_message(message):                
+                # channel_log(channel, "<", message)
+                # print(f"[dm][{channel.id}] Received: {channel.label}: {message}")
+                self.data_dict[channel.label] = message
+
+        async def send_start(channel):
+            self.data_channels[channel.label].send('start')
+        
+        for k in self.data_channels.keys():
+            channel = self.data_channels[k]
+            # @channel.on("open")
+            # def on_open():
+            #     asyncio.ensure_future(send_start(channel))
+        
+            @channel.on("message")
+            def on_message(message):
+                # print(f"[om][{channel.id}] Received: {channel.label}: {message}")
+                self.data_dict[channel.label] = message
+
 
         if self.role == "offer":
             # send offer
